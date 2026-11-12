@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BURNER VAULT // SECURE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='vault.css') }}">
+</head>
+<body class="h-screen flex flex-col justify-between p-3 md:p-6 overflow-hidden">
+
+    <header class="vault-panel p-3.5 md:p-4 rounded-2xl flex justify-between items-center shrink-0">
+        <div>
+            <h1 class="text-xs md:text-base font-bold tracking-wider neon-crimson text-rose-500">BURNER VAULT // SECURE</h1>
+            <p class="text-[10px] text-zinc-400 mt-1">AGENT: <span class="text-zinc-200 font-semibold uppercase">{{ username }}</span></p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <div class="text-right hidden sm:block">
+                <span class="block stat text-zinc-500 uppercase">Nodes</span>
+                <span id="node-count" class="text-xs font-bold text-zinc-300">01</span>
+            </div>
+            <a href="/logout" class="px-3 py-1.5 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-600/40 text-rose-300 rounded-xl text-[11px] font-bold uppercase transition">
+                ඉවත් වන්න
+            </a>
+        </div>
+    </header>
+
+    <main class="my-3 flex-1 flex flex-col md:grid md:grid-cols-2 gap-3 overflow-hidden">
+        
+        <div class="vault-panel rounded-2xl p-4 flex flex-col overflow-hidden">
+            <h2 class="text-xs uppercase tracking-wider text-rose-400 font-bold mb-1">// Burnable Secret Notes</h2>
+            <p class="text-[10px] text-zinc-400 mb-3">කියවූ පසු 'Burn' කළ විට සදහටම මැකී යන රහස් සටහන්.</p>
+            
+            <form action="/add_note" method="POST" class="space-y-2 mb-3">
+                <textarea name="content" rows="2" placeholder="රහස් පණිවිඩය මෙතැන ලියන්න..." class="w-full input-field resize-none" required></textarea>
+                <button type="submit" class="w-full btn uppercase">
+                    සටහන යවන්න (Broadcast)
+                </button>
+            </form>
+
+            <div id="notes-list" class="flex-1 overflow-y-auto custom-scroll space-y-2 text-xs">
+                {% for note_id, sender, content in notes %}
+                <div id="note-{{ note_id }}" class="msg-item flex justify-between items-start">
+                    <div class="pr-2">
+                        <span class="msg-sender block mb-1">From: <b>{{ sender }}</b></span>
+                        <p class="text-body break-all">{{ content }}</p>
+                    </div>
+                    <form action="/burn_note/{{ note_id }}" method="POST" class="shrink-0">
+                        <button type="submit" class="btn-burn-sm uppercase">
+                            Burn 🔥
+                        </button>
+                    </form>
+                </div>
+                {% else %}
+                <div class="empty text-center italic py-8">[ රහස් සටහන් නොමැත. ]</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="vault-panel rounded-2xl p-4 flex flex-col overflow-hidden">
+            <h2 class="text-xs uppercase tracking-wider text-rose-400 font-bold mb-1">// Secure File Vault</h2>
+            <p class="text-[10px] text-zinc-400 mb-3">නෙට්වර්ක් එකේ ඉන්න අයට ෂෙයාර් කරන්න ඕන ෆයිල්ස්.</p>
+            
+            <form action="/upload" method="POST" enctype="multipart/form-data" class="space-y-2 mb-3">
+                <input type="file" name="file" class="w-full text-xs text-zinc-300 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-[11px] file:font-bold file:bg-zinc-800 file:text-zinc-200 hover:file:bg-zinc-700 border border-zinc-800 p-2 rounded-xl bg-zinc-950" required>
+                <button type="submit" class="w-full btn uppercase">
+                    ෆයිල් එක අප්ලෝඩ් කරන්න
+                </button>
+            </form>
+
+            <div id="file-list" class="flex-1 overflow-y-auto custom-scroll space-y-2 text-xs">
+                {% for filename, uploader, timestamp in files %}
+                <div class="file-item flex justify-between items-center">
+                    <div class="truncate max-w-[62%]">
+                        <span class="file-name block truncate">{{ filename }}</span>
+                        <span class="file-meta">By: {{ uploader }}</span>
+                    </div>
+                    <a href="/uploads/{{ filename }}" target="_blank" class="btn-dl uppercase">
+                        ഡਾවුන්ලෝඩ්
+                    </a>
+                </div>
+                {% else %}
+                <div class="empty text-center italic py-8">[ ෆයිල්ස් නොමැත. ]</div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="vault-panel p-2.5 rounded-2xl text-center text-[10px] text-zinc-500 shrink-0">
+        BURNER PROTOCOL // SELF-DESTRUCTING SECURE VAULT
+    </footer>
+
+    <script>
+        const socket = io();
+        const nodeCountSpan = document.getElementById('node-count');
+        const notesList = document.getElementById('notes-list');
+        const fileListDiv = document.getElementById('file-list');
+
+        socket.on('node_update', (data) => {
+            if(nodeCountSpan) nodeCountSpan.innerText = String(data.nodes).padStart(2, '0');
+        });
+
+        socket.on('new_note', (data) => {
+            const item = document.createElement('div');
+            item.id = `note-${data.id}`;
+            item.className = 'msg-item flex justify-between items-start';
+            item.innerHTML = `
+                <div class="pr-2">
+                    <span class="msg-sender block mb-1">From: <b>${data.sender}</b></span>
+                    <p class="text-body break-all">${data.content}</p>
+                </div>
+                <form action="/burn_note/${data.id}" method="POST" class="shrink-0">
+                    <button type="submit" class="btn-burn-sm uppercase">Burn 🔥</button>
+                </form>
+            `;
+            notesList.prepend(item);
+        });
+
+        socket.on('note_burned', (data) => {
+            const el = document.getElementById(`note-${data.id}`);
+            if(el) el.remove();
+        });
+
+        socket.on('new_file', (data) => {
+            const item = document.createElement('div');
+            item.className = 'file-item flex justify-between items-center';
+            item.innerHTML = `
+                <div class="truncate max-w-[62%]">
+                    <span class="file-name block truncate">${data.filename}</span>
+                    <span class="file-meta">By: ${data.uploader}</span>
+                </div>
+                <a href="/uploads/${data.filename}" target="_blank" class="btn-dl uppercase">ഡਾවුන්ලෝඩ්</a>
+            `;
+            fileListDiv.prepend(item);
+        });
+    </script>
+</body>
+</html>

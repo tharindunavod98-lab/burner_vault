@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BURNER VAULT // LOGIN</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='vault.css') }}">
+</head>
+<body class="h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-sm auth-card p-6 rounded-2xl shadow-2xl">
+        <h1 class="text-lg font-bold text-rose-500 mb-1 neon-crimson">// BURNER VAULT</h1>
+        <p class="text-[11px] text-zinc-400 mb-6">රහස් සටහන් සහ ෆයිල්ස් හුවමාරු පද්ධතිය.</p>
+        {% if error %}<div class="mb-4 p-3 bg-rose-950/80 border border-rose-600 text-rose-300 text-xs rounded-xl">{{ error }}</div>{% endif %}
+        <form method="POST" class="space-y-4">
+          <div>
+            <label class="block label mb-1">USERNAME</label>
+            <input type="text" name="username" class="w-full input-field" required>
+          </div>
+          <div>
+            <label class="block label mb-1">PASSWORD</label>
+            <input type="password" name="password" class="w-full input-field" required>
+          </div>
+          <button type="submit" class="w-full btn uppercase">ප්‍රවේශ වන්න</button>
+        </form>
+        <p class="mt-5 text-center text-xs text-zinc-500">ගිණුමක් නැද්ද? <a href="/register" class="text-rose-400 underline font-semibold">ලියාපදිංචි වන්න</a></p>
+    </div>
+</body>
+</html>
